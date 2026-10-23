@@ -7,7 +7,7 @@
       "devDependencies": {
         "@eslint/js": "~10.0.1",
         "@revenuecat/purchases-js": "~1.73.1",
-        "@sudobility/types": "^1.9.75",
+        "@sudobility/types": "^1.9.76",
         "@types/bun": "~1.4.4",
         "@types/node": "~22.20.5",
         "@types/react": "~19.3.0",
@@ -22,7 +22,7 @@
       },
       "peerDependencies": {
         "@revenuecat/purchases-js": "^1.0.0",
-        "@sudobility/types": "^1.9.75",
+        "@sudobility/types": "^1.9.76",
         "react": "^18.0.0 || ^19.0.0",
         "react-native-purchases": ">=7.0.0",
       },
@@ -105,7 +105,7 @@
 
     "@standard-schema/spec": ["@standard-schema/spec@1.1.0", "", {}, "sha512-l2aFy5jALhniG5HgqrD6jXLi/rUWrKvqN/qJx6yoJsgKhblVd+iqqU4RCXavm/jPityDo5TCvKMnpjKnOriy0w=="],
 
-    "@sudobility/types": ["@sudobility/types@1.9.75", "https://npm.pkg.github.com/download/@sudobility/types/1.9.75/d041222e1a9c48b1857a25686361fa493265e572", {}, "sha512-c0IqHhNsyMxWFzv+sC8drTXid1s/yberzme5JJTYIR2CE+DxpnjFCyL0AIMKUwTQYhYKvRZG0JkWRFplirbBrw=="],
+    "@sudobility/types": ["@sudobility/types@1.9.76", "https://npm.pkg.github.com/download/@sudobility/types/1.9.76/71635156f72fd9461107d5f147b3dc1c49f863d0", {}, "sha512-b7maZHR5wM84VlQ+l9R+2guzSOrExog6OUNy1oCe7h0abW13syycmnLQL0g+qql0aQ84qTB4A0mJelhY3Vef4Q=="],
 
     "@types/bun": ["@types/bun@1.4.4", "", { "dependencies": { "bun-types": "1.4.4" } }, "sha512-9wkRDXUXK124pEnAutE6n/l18j+i9GC5IAHK8TmX/2nlySETmky0OU6yL5U8pW1AoKh++AN9auDCr647BfurjQ=="],
 
