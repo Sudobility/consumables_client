@@ -52,8 +52,14 @@ export type {
   CreditPackage,
   CreditOffering,
   CreditBalance,
+  ProductMetadata,
 } from "./types";
 
-// Adapters are exported via subpath imports:
-//   @sudobility/consumables_client/adapter/web
-//   @sudobility/consumables_client/adapter/rn
+// NOTE: Concrete RevenueCat adapters are intentionally NOT part of this package.
+// consumables_client is platform-agnostic business logic and must not pull in a
+// platform SDK (@revenuecat/purchases-js on web, react-native-purchases on RN).
+// The agnostic seam is `initializeConsumables({ adapter })` + the
+// `ConsumablesAdapter` interface above. Concrete adapters live in the platform
+// UI packages and are injected through that seam:
+//   - Web:          @sudobility/consumables_pages    (createConsumablesWebAdapter)
+//   - React Native: @sudobility/consumables_pages_rn (createConsumablesRNAdapter)

@@ -1,6 +1,6 @@
 {
   "name": "@sudobility/consumables_client",
-  "version": "0.0.38",
+  "version": "0.0.39",
   "description": "Cross-platform consumable credits client with RevenueCat adapter pattern",
   "type": "module",
   "main": "./dist/index.js",
@@ -10,14 +10,6 @@
     ".": {
       "import": "./dist/index.js",
       "types": "./dist/index.d.ts"
-    },
-    "./adapter/web": {
-      "import": "./dist/adapters/revenuecat-web.js",
-      "types": "./dist/adapters/revenuecat-web.d.ts"
-    },
-    "./adapter/rn": {
-      "import": "./dist/adapters/revenuecat-rn.js",
-      "types": "./dist/adapters/revenuecat-rn.d.ts"
     }
   },
   "files": [
@@ -39,21 +31,10 @@
   },
   "peerDependencies": {
     "@sudobility/types": "^1.9.76",
-    "react": "^18.0.0 || ^19.0.0",
-    "@revenuecat/purchases-js": "^1.0.0",
-    "react-native-purchases": ">=7.0.0"
-  },
-  "peerDependenciesMeta": {
-    "@revenuecat/purchases-js": {
-      "optional": true
-    },
-    "react-native-purchases": {
-      "optional": true
-    }
+    "react": "^18.0.0 || ^19.0.0"
   },
   "devDependencies": {
     "@eslint/js": "~10.0.1",
-    "@revenuecat/purchases-js": "~1.73.1",
     "@sudobility/types": "^1.9.76",
     "@types/bun": "~1.4.4",
     "@types/node": "~26.6.5",
