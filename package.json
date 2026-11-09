@@ -1,6 +1,6 @@
 {
   "name": "@sudobility/consumables_client",
-  "version": "0.0.40",
+  "version": "0.0.41",
   "description": "Cross-platform consumable credits client with RevenueCat adapter pattern",
   "type": "module",
   "main": "./dist/index.js",
@@ -30,12 +30,12 @@
     "prepublishOnly": "bun run build"
   },
   "peerDependencies": {
-    "@sudobility/types": "^1.9.78",
+    "@sudobility/types": "^1.9.79",
     "react": "^18.0.0 || ^19.0.0"
   },
   "devDependencies": {
     "@eslint/js": "~10.0.1",
-    "@sudobility/types": "^1.9.78",
+    "@sudobility/types": "^1.9.79",
     "@types/bun": "~1.4.4",
     "@types/node": "~26.6.5",
     "@types/react": "~19.3.0",

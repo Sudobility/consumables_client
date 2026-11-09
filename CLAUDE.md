@@ -1,148 +1,100 @@
 # Consumables Client
 
-> **Git policy — never auto-commit or auto-push.** Leave your work in the working tree.
+> **Git policy — never auto-commit or auto-push.** Leave work in the working tree.
 > Run `git commit`, `git push`, `gh pr create`, or `scripts/push_all.sh` **only when the user
 > explicitly asks in that turn**. Approval for an earlier change does not carry forward, and
-> finishing a task is not permission to commit it.
+> finishing a task is not permission to commit it. Stay on the current branch — do not create
+> feature branches for code changes.
 
-Cross-platform consumable credits client with RevenueCat adapter pattern.
+Platform-agnostic business logic for a consumable "credits" system (buy credits, track balance,
+record usage, redeem coupons). Ships a service + singleton + HTTP client + React hooks. Consumed
+by `consumables_pages` (web) and `consumables_pages_rn` (RN); talks to `consumables_service`
+over HTTP.
 
-**npm**: `@sudobility/consumables_client` (public)
-**Version**: 0.0.6
-**License**: BUSL-1.1
+- npm: `@sudobility/consumables_client` (public). Version lives in `package.json` (currently 0.0.40).
+- License: BUSL-1.1
 
-## Tech Stack
+## Stack
 
-- **Language**: TypeScript 5.9.3 (strict mode)
-- **Runtime**: Bun
-- **Package Manager**: Bun (never npm/yarn/pnpm)
-- **Build**: TypeScript compiler (ESM only)
-- **Test**: Vitest 4.x
-- **JSX**: react-jsx (React 18/19)
+- TypeScript ~6.0 (very strict: `noUncheckedIndexedAccess`, `exactOptionalPropertyTypes`, etc.)
+- Bun runtime **and** package manager (never npm/yarn/pnpm).
+- ESM-only output. Build = `tsc -p tsconfig.build.json` then `scripts/fix-esm-imports.mjs`.
+- Vitest ~4 for tests. ESLint ~10 + Prettier. JSX: `react-jsx` (React 18/19 peer).
+- Scope `@sudobility` resolves to GitHub Packages (`.npmrc`), not public npm — install needs a
+  GitHub token with `read:packages`.
 
-## Project Structure
-
-```
-src/
-├── index.ts                       # Main barrel exports
-├── types/
-│   ├── index.ts                   # CreditPackage, CreditOffering, CreditBalance
-│   └── adapter.ts                 # ConsumablesAdapter interface, ConsumablePurchaseResult, ConsumablePurchaseParams
-├── core/
-│   ├── index.ts                   # Re-exports from service.ts and singleton.ts
-│   ├── service.ts                 # ConsumablesService class (caching, purchase flow, usage)
-│   └── singleton.ts               # Module-level singleton + event listeners (init, userId, balance change)
-├── network/
-│   └── ConsumablesApiClient.ts    # HTTP client wrapping NetworkClient for /api/v1/consumables/* endpoints
-├── adapters/
-│   ├── index.ts                   # Re-exports web and RN adapters
-│   ├── revenuecat-web.ts          # Web adapter (wraps @revenuecat/purchases-js, lazy-loaded)
-│   └── revenuecat-rn.ts           # React Native adapter (wraps react-native-purchases, lazy-loaded)
-└── hooks/
-    ├── index.ts                   # Re-exports all hooks
-    ├── useBalance.ts              # Current credit balance (subscribes to balance + userId changes)
-    ├── useConsumableProducts.ts   # Available credit packages from a specific offering
-    ├── usePurchaseCredits.ts      # Purchase flow (adapter.purchase -> api.recordPurchase -> notify)
-    ├── usePurchaseHistory.ts      # Paginated purchase audit trail with loadMore
-    └── useUsageHistory.ts         # Paginated usage audit trail with loadMore
-tests/
-├── singleton.test.ts
-├── ConsumablesService.test.ts
-└── ConsumablesApiClient.test.ts
-```
-
-## Commands
+## Commands (verified in package.json)
 
 ```bash
-bun run build        # Build ESM via tsc
-bun run clean        # Remove dist/
-bun run dev          # Watch mode (tsc --watch)
-bun test             # Run tests (vitest run)
-bun run test:watch   # Watch tests
-bun run typecheck    # TypeScript check (bunx tsc --noEmit)
-bun run lint         # ESLint
-bun run lint:fix     # ESLint with auto-fix
-bun run format       # Prettier format
+bun run build        # tsc build + fix-esm-imports.mjs
+bun run clean        # rm -rf dist
+bun run dev          # tsc --watch
+bun run typecheck    # bunx tsc --noEmit
+bun run lint         # bunx eslint src   (lint:fix for autofix)
+bun run format       # prettier --write
+bun run test:unit    # vitest run   <-- run tests THIS way
+bun run test:watch   # vitest watch
+bun run verify       # typecheck + lint + test:unit + build
 ```
 
-## Dependencies
+**Do not run `bun test`** — that triggers Bun's own runner, not Vitest. Use `bun run test:unit`.
 
-### Peer Dependencies
-- `@sudobility/types` ^1.9.53 -- shared type definitions (ConsumablePurchaseRecord, ConsumableUsageRecord, NetworkClient)
-- `react` ^18.0.0 || ^19.0.0 -- hooks use React useState/useEffect/useCallback
-- `@revenuecat/purchases-js` ^1.0.0 (optional) -- only needed for web adapter
-- `react-native-purchases` >=7.0.0 (optional) -- only needed for RN adapter
+## Architecture
 
-### Dev Dependencies
-- TypeScript ~5.9.3, Vitest ^4.0.4, ESLint ^9.x, Prettier ^3.x
+```
+src/index.ts                      # barrel: core, network, hooks, types
+src/types/{index,adapter}.ts      # client types + ConsumablesAdapter interface
+src/core/service.ts               # ConsumablesService (caching, purchase/usage flow)
+src/core/singleton.ts             # module-level singleton + event listeners
+src/network/ConsumablesApiClient.ts  # HTTP client for /api/v1/consumables/*
+src/hooks/*.ts                    # useBalance, useConsumableProducts, usePurchaseCredits,
+                                  #   usePurchaseHistory, useUsageHistory
+src/_node_globals.d.ts            # ambient node globals for the build script
+scripts/fix-esm-imports.mjs       # post-build ESM specifier rewriter
+tests/*.test.ts                   # singleton, ConsumablesService, ConsumablesApiClient
+```
 
-## Key Concepts
+- **No React Context** — a module-level singleton (`initializeConsumables({ adapter, apiClient })`)
+  holds the `ConsumablesService`; all hooks read from it. Never add a Context provider.
+- **No payment SDK in this package.** Only the `ConsumablesAdapter` *interface* is exported
+  (`getOfferings`, `purchase`, optional `setUserId`). Concrete adapters (RevenueCat, etc.) are
+  injected by the UI packages via `initializeConsumables`. To support a platform, add an adapter
+  in the UI package — not here.
+- **Event-driven balance** — balance updates broadcast via `onConsumablesBalanceChange`; hooks
+  subscribe. Emit `notifyBalanceChange()` after any balance mutation.
+- **Entity scoping** — `ConsumablesApiClient` optionally scopes requests to a selected entity via
+  a query param (`entityQueryParam`) and/or header (`entityHeaderName`), with the id from
+  `getEntityId()`. Balance cache is keyed by entity id.
 
-### Adapter Pattern
-- Web adapter wraps `@revenuecat/purchases-js`
-- RN adapter wraps `react-native-purchases`
-- Both implement the `ConsumablesAdapter` interface (getOfferings, purchase, setUserId)
-- Adapters lazy-load their SDK via dynamic `import()` (web) or `require()` (RN)
+## Key conventions / gotchas
 
-### ConsumablesService
-- Core orchestration class constructed with `{ adapter, apiClient }`
-- Manages two caches: `balanceCache` (per-user) and `offeringsCache` (global)
-- Purchase flow: adapter.purchase() -> apiClient.recordPurchase() -> update cache
-- Usage flow: apiClient.recordUsage() -> update cache
-
-### Singleton + Event Listeners
-- No React Context needed -- module-level singleton pattern
-- `initializeConsumables(config)` at app startup
-- `setConsumablesUserId(userId, email?)` on auth state changes
-- `onConsumablesBalanceChange(listener)` returns unsubscribe function
-- `onConsumablesUserIdChange(listener)` returns unsubscribe function
-- `notifyBalanceChange()` manually triggers balance listeners
-
-### Hooks
-- `useBalance()` -- current credit balance, subscribes to balance and userId changes
-- `useConsumableProducts(offeringId)` -- available packages from a specific RevenueCat offering
-- `usePurchaseCredits()` -- returns `purchase(packageId, offeringId)` callback + isPurchasing state
-- `usePurchaseHistory(limit?)` -- paginated purchase records with loadMore
-- `useUsageHistory(limit?)` -- paginated usage records with loadMore
-
-### ConsumablesApiClient
-- HTTP wrapper using `NetworkClient` from `@sudobility/types`
-- Base URL pattern: `{baseUrl}/api/v1/consumables/{endpoint}`
-- Endpoints: `/balance` (GET), `/purchase` (POST), `/use` (POST), `/purchases` (GET), `/usages` (GET)
-- Maps snake_case API responses to camelCase client types
-
-## Related Projects
-
-- **consumables_pages** (`@sudobility/consumables_pages`) -- UI components for the credits store and history pages. Depends on this package for types (not runtime hooks).
-- **consumables_service** (`@sudobility/consumables_service`) -- Backend counterpart that manages balances, purchases, and usage in the database. This client calls its API endpoints via HTTP.
-
-Dependency direction: `consumables_pages` --> `consumables_client` --> `consumables_service` (via HTTP)
-
-## Coding Patterns
-
-- **Singleton pattern (no React Context)**: The library uses a module-level singleton (`initializeConsumables()`) instead of React Context. All hooks read from this singleton. Never introduce a Context provider.
-- **Adapter pattern for RevenueCat**: Platform-specific SDK logic lives in adapters that implement `ConsumablesAdapter`. To support a new platform, add a new adapter file -- do not modify existing adapters.
-- **Event-driven balance updates**: Balance changes are broadcast via `onConsumablesBalanceChange()` listeners. Hooks subscribe to these events. When modifying balance-related logic, always emit the balance change event so subscribers stay in sync.
-- **Lazy-loaded adapters**: Adapters dynamically import their underlying SDK (`@revenuecat/purchases-js` or `react-native-purchases`) to keep initial bundle size small.
-- **snake_case API <-> camelCase client**: The API client maps between backend snake_case (e.g., `initial_credits`) and client camelCase (e.g., `initialCredits`).
-
-## Gotchas
-
-- **Adapters lazy-load the SDK**: The RevenueCat SDK is imported dynamically inside the adapter, not at module level. This reduces bundle size but means the adapter is not ready synchronously -- always `await` initialization.
-- **Singleton must be initialized before hooks work**: Calling `useBalance()` or any hook before `initializeConsumables()` will throw or return undefined. Ensure initialization happens at app startup (e.g., in a root layout or entry file).
-- **Offerings cache survives user change, but balance cache does not**: When `setConsumablesUserId()` is called, the balance is refetched for the new user, but cached offerings (credit packages) are kept because they are not user-specific. Do not clear offerings on user change.
-- **Two adapters, one interface**: Web and React Native adapters have different underlying SDKs with different APIs. Always code against `ConsumablesAdapter`, never against a specific SDK directly.
-- **Web adapter uses `Purchases.close()` on user switch**: The web SDK requires closing and reconfiguring when switching users. The RN adapter uses `logOut()` + `logIn()` instead.
-- **RN adapter defaults source to "apple"**: The React Native adapter currently always returns `"apple"` as the purchase source. Platform detection for Android ("google") is not implemented.
-- **`removeComments: true` in tsconfig**: JSDoc comments are stripped from the build output. This is intentional for bundle size but means consumers cannot see inline docs from `dist/`.
+- **Server owns credits, not the store.** `loadOfferings()` fetches the store catalog via the
+  adapter AND the approved product→credits map via `apiClient.getCreditProducts()`. Packages
+  whose `productId` is not in the server allowlist are filtered out; the credit amount always
+  comes from the API, never from store/RevenueCat metadata (that metadata is display-only).
+- **packageId is composite.** Cached packages get `packageId = "<offeringId>::<storePackageId>"`;
+  the original store id is kept in `storePackageId` and is what the adapter receives for purchase.
+- **Purchase flow** (`ConsumablesService.purchase`): resolve package → `prepareCreditPurchase()`
+  (optional entity-target POST) → `adapter.purchase()` → verify returned `productId` matches →
+  `apiClient.recordPurchase()` → update balance cache. Mismatched product throws.
+- **Cache lifetimes.** Offerings cache is global and preserved across user switches (products are
+  not user-specific). Balance cache is per-entity and cleared on `setConsumablesUserId`. In-flight
+  balance loads use a sequence guard so a stale response can't overwrite a newer entity's balance.
+- **Singleton must be initialized first.** Hooks called before `initializeConsumables()` return
+  empty/early (they check `isConsumablesInitialized()`), not throw. `useBalance` also returns null
+  when there is no current user id.
+- **API snake_case ↔ client camelCase.** `ConsumablesApiClient` maps both directions and tolerates
+  either casing on responses. Endpoints under `/api/v1/consumables`: `/balance`, `/purchase`,
+  `/use`, `/purchases`, `/usages`, `/redeem-coupon`, `/coupons`, `/coupons/history`,
+  `/purchase-target`. The public catalog path defaults to `/api/v1/public/consumables/offerings`
+  (override via `creditProductsPath`).
+- **`removeComments: true`** in tsconfig strips JSDoc from `dist/` (intentional, for size).
+- **ESM import fixer is required.** Do not drop `fix-esm-imports.mjs` from the build; without it
+  the emitted extensionless specifiers are unresolvable by Node's ESM loader. The script is
+  idempotent and never fails the build on unresolved (dynamic/doc-comment) specifiers.
 
 ## Publishing
 
-- Package: `@sudobility/consumables_client` (public on npm)
-- Build before publish: `bun run build` produces ESM output in `dist/`
-- Bump version in `package.json`, then `npm publish --access public`
-- Consumers (e.g., `consumables_pages`) should be tested against the new version before publishing downstream
-
-## Git Workflow
-
-- Do not use feature branches for code changes. Always stay on the current branch.
+- `prepublishOnly` runs `bun run build` (emits ESM to `dist/`). `files` ships `dist` + `CLAUDE.md`.
+- Bump `version` in `package.json`, then publish. Test downstream consumers
+  (`consumables_pages`) against the new version before publishing them.
